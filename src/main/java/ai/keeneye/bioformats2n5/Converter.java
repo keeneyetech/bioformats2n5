@@ -9,6 +9,7 @@ package ai.keeneye.bioformats2n5;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -59,6 +60,16 @@ import ome.xml.model.enums.EnumerationException;
 import ome.xml.model.enums.PixelType;
 import ome.xml.model.primitives.PositiveInteger;
 
+import org.janelia.saalfeldlab.n5.ByteArrayDataBlock;
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DataBlock;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.DoubleArrayDataBlock;
+import org.janelia.saalfeldlab.n5.FloatArrayDataBlock;
+import org.janelia.saalfeldlab.n5.IntArrayDataBlock;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.ShortArrayDataBlock;
 import org.perf4j.slf4j.Slf4JStopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +92,11 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import ucar.ma2.InvalidRangeException;
+
+import javax.annotation.Nullable;
+
+import static ai.keeneye.bioformats2n5.FileType.n5;
+import static ai.keeneye.bioformats2n5.FileType.zarr;
 
 /**
  * Command line tool for converting whole slide imaging files to Zarr.
@@ -192,8 +208,8 @@ public class Converter implements Callable<Void> {
           description = "Compression type for Zarr " +
                   "(${COMPLETION-CANDIDATES}; default: ${DEFAULT-VALUE})"
   )
-  private volatile ZarrCompression compressionType =
-          ZarrCompression.blosc;
+  private volatile ZarrCompression.CompressionTypes compressionType =
+          ZarrCompression.CompressionTypes.blosc;
 
   @Option(
           names = {"--compression-properties"},
@@ -203,6 +219,14 @@ public class Converter implements Callable<Void> {
   )
   private volatile Map<String, Object> compressionProperties =
     new HashMap<String, Object>();;
+
+  @Option(
+          names = {"--compression-parameter"},
+          description = "Integer parameter for chosen compression (see " +
+                  "https://github.com/saalfeldlab/n5/blob/master/README.md" +
+                  " )"
+  )
+  private volatile Integer compressionParameter = null;
 
   @Option(
           names = "--extra-readers",
@@ -221,6 +245,14 @@ public class Converter implements Callable<Void> {
                   "(true by default)"
   )
   private volatile boolean nested = true;
+
+  @Option(
+          names = "--file_type",
+          description = "Tile file extension: ${COMPLETION-CANDIDATES} " +
+                  "(default: ${DEFAULT-VALUE}) " +
+                  "[Can break compatibility with raw2ometiff]"
+  )
+  private volatile FileType fileType = zarr;
 
   @Option(
           names = "--pyramid-name",
@@ -335,6 +367,9 @@ public class Converter implements Callable<Void> {
   private volatile BlockingQueue<Runnable> queue;
 
   private volatile ExecutorService executor;
+
+  /** Whether or not the source file is little endian. */
+  private boolean isLittleEndian;
 
   /**
    * The source file's pixel type.  Retrieved from
@@ -533,7 +568,10 @@ public class Converter implements Callable<Void> {
         String xml = getService().getOMEXML(meta);
 
         // write the original OME-XML to a file
-        Path metadataPath = getRootPath().resolve("OME");
+        Path metadataPath = outputPath;
+        if (!n5.equals(fileType)) {
+          metadataPath = getRootPath().resolve("OME");
+        }
         if (!Files.exists(metadataPath)) {
           Files.createDirectories(metadataPath);
         }
@@ -849,6 +887,93 @@ public class Converter implements Callable<Void> {
       tileAsBytes, pixelType, width, height, PYRAMID_SCALE, downsampling);
   }
 
+  private byte[] getTileDownsampledN5(
+          int series, int resolution, int plane, int xx, int yy,
+          int width, int height)
+          throws FormatException, IOException, InterruptedException,
+          EnumerationException
+  {
+    final String pathName = "/" +
+            String.format(scaleFormatString,
+                    getScaleFormatStringArgs(series, resolution - 1));
+    final String pyramidPath = outputPath.resolve(pyramidName).toString();
+    final N5Reader n5 = fileType.reader(pyramidPath);
+
+    DatasetAttributes datasetAttributes = n5.getDatasetAttributes(pathName);
+    long[] dimensions = datasetAttributes.getDimensions();
+    int[] blockSizes = datasetAttributes.getBlockSize();
+    int activeTileWidth = blockSizes[0];
+    int activeTileHeight = blockSizes[1];
+
+    // Upscale our base X and Y offsets, and sizes to the previous resolution
+    // based on the pyramid scaling factor
+    xx *= PYRAMID_SCALE;
+    yy *= PYRAMID_SCALE;
+    width = (int) Math.min(
+            activeTileWidth * PYRAMID_SCALE, dimensions[0] - xx);
+    height = (int) Math.min(
+            activeTileHeight * PYRAMID_SCALE, dimensions[1] - yy);
+
+    IFormatReader reader = readers.take();
+    long[] startGridPosition;
+    try {
+      startGridPosition = getGridPosition(
+              reader, xx / activeTileWidth, yy / activeTileHeight, plane);
+    }
+    finally {
+      readers.put(reader);
+    }
+    int xBlocks = (int) Math.ceil((double) width / activeTileWidth);
+    int yBlocks = (int) Math.ceil((double) height / activeTileHeight);
+
+    int bytesPerPixel = FormatTools.getBytesPerPixel(pixelType);
+    byte[] tile = new byte[width * height * bytesPerPixel];
+    for (int xBlock=0; xBlock<xBlocks; xBlock++) {
+      for (int yBlock=0; yBlock<yBlocks; yBlock++) {
+        int blockWidth = Math.min(
+                width - (xBlock * activeTileWidth), activeTileWidth);
+        int blockHeight = Math.min(
+                height - (yBlock * activeTileHeight), activeTileHeight);
+        long[] gridPosition = new long[] {
+                startGridPosition[0] + xBlock, startGridPosition[1] + yBlock,
+                startGridPosition[2], startGridPosition[3], startGridPosition[4]
+        };
+        ByteBuffer subTile = n5.readBlock(
+                pathName, datasetAttributes, gridPosition
+        ).toByteBuffer();
+
+        int destLength = blockWidth * bytesPerPixel;
+        int srcLength = destLength;
+        if (fileType == zarr) {
+          // n5/n5-zarr does not de-pad on read
+          srcLength = activeTileWidth * bytesPerPixel;
+        }
+        for (int y=0; y<blockHeight; y++) {
+          int srcPos = y * srcLength;
+          int destPos = ((yBlock * width * activeTileHeight)
+                  + (y * width) + (xBlock * activeTileWidth)) * bytesPerPixel;
+          // Cast to Buffer to avoid issues if compilation is performed
+          // on JDK9+ and execution is performed on JDK8.  This is due
+          // to the existence of covariant return types in the resultant
+          // byte code if compiled on JDK0+.  For reference:
+          //   https://issues.apache.org/jira/browse/MRESOLVER-85
+          ((Buffer) subTile).position(srcPos);
+          subTile.get(tile, destPos, destLength);
+        }
+      }
+    }
+
+    if (downsampling == Downsampling.SIMPLE) {
+      return scaler.downsample(tile, width, height,
+              PYRAMID_SCALE, bytesPerPixel, false,
+              FormatTools.isFloatingPoint(pixelType),
+              1, false);
+    }
+
+    return OpenCVTools.downsample(
+            tile, pixelType, width, height, PYRAMID_SCALE, downsampling);
+  }
+
   private byte[] getTile(
       int series, int resolution, int plane, int xx, int yy,
       int width, int height)
@@ -869,8 +994,14 @@ public class Converter implements Callable<Void> {
     else {
       Slf4JStopWatch t0 = new Slf4JStopWatch("getTileDownsampled");
       try {
-        return getTileDownsampled(
-            series, resolution, plane, xx, yy, width, height);
+        if (n5.equals(fileType)){
+          return getTileDownsampledN5(
+                  series, resolution, plane, xx, yy, width, height);
+        }
+        else {
+          return getTileDownsampled(
+                  series, resolution, plane, xx, yy, width, height);
+        }
       }
       finally {
         t0.stop();
@@ -928,6 +1059,53 @@ public class Converter implements Callable<Void> {
     return offset;
   }
 
+  /**
+   * Retrieve the dimensions based on either the configured or input file
+   * dimension order at the current resolution.
+   * @param reader initialized reader for the input file
+   * @param scaledWidth size of the X dimension at the current resolution
+   * @param scaledHeight size of the Y dimension at the current resolution
+   * @return dimension array ready for use with N5
+   * @throws EnumerationException
+   */
+  private long[] getDimensionsN5(
+          IFormatReader reader, int scaledWidth, int scaledHeight)
+          throws EnumerationException
+  {
+    int sizeZ = reader.getSizeZ();
+    int sizeC = reader.getSizeC();
+    int sizeT = reader.getSizeT();
+    String o = dimensionOrder != null? dimensionOrder.toString()
+            : reader.getDimensionOrder();
+    long[] dimensions = new long[] {scaledWidth, scaledHeight, 0, 0, 0};
+    dimensions[o.indexOf("Z")] = sizeZ;
+    dimensions[o.indexOf("C")] = sizeC;
+    dimensions[o.indexOf("T")] = sizeT;
+    return dimensions;
+  }
+
+  /**
+   * Retrieve the grid position based on either the configured or input file
+   * dimension order at the current resolution.
+   * @param reader initialized reader for the input file
+   * @param x X position at the current resolution
+   * @param y Y position at the current resolution
+   * @param plane current plane being operated upon
+   * @return grid position array ready for use with N5
+   */
+  private long[] getGridPosition(
+          IFormatReader reader, int x, int y, int plane)
+  {
+    String o = dimensionOrder != null? dimensionOrder.toString()
+            : reader.getDimensionOrder();
+    int[] zct = reader.getZCTCoords(plane);
+    long[] gridPosition = new long[] {x, y, 0, 0, 0};
+    gridPosition[o.indexOf("Z")] = zct[0];
+    gridPosition[o.indexOf("C")] = zct[1];
+    gridPosition[o.indexOf("T")] = zct[2];
+    return gridPosition;
+  }
+
   private void processTile(
       int series, int resolution, int plane, int xx, int yy,
       int width, int height)
@@ -974,6 +1152,64 @@ public class Converter implements Callable<Void> {
     writeBytes(zarr, shape, offset, tileBuffer);
   }
 
+  private void processTileN5(
+          int series, int resolution, int plane, int xx, int yy,
+          int width, int height)
+          throws EnumerationException, FormatException, IOException,
+          InterruptedException, InvalidRangeException
+  {
+    String pathName =
+            "/" + String.format(scaleFormatString,
+                    getScaleFormatStringArgs(series, resolution));
+    final String pyramidPath = outputPath.resolve(pyramidName).toString();
+    final N5Writer n5 = fileType.writer(pyramidPath);
+    DatasetAttributes datasetAttributes = n5.getDatasetAttributes(pathName);
+    int[] blockSizes = datasetAttributes.getBlockSize();
+    int activeTileWidth = blockSizes[0];
+    int activeTileHeight = blockSizes[1];
+    IFormatReader reader = readers.take();
+    long[] gridPosition;
+    try {
+      gridPosition = getGridPosition(
+              reader, xx / activeTileWidth, yy / activeTileHeight, plane);
+    }
+    finally {
+      readers.put(reader);
+    }
+    int[] size = new int[] {width, height, 1, 1, 1};
+
+    Slf4JStopWatch t0 = new Slf4JStopWatch("getTile");
+    DataBlock<?> dataBlock;
+    try {
+      LOGGER.info("requesting tile to write at {} to {}",
+              gridPosition, pathName);
+      byte[] tile = getTile(series, resolution, plane, xx, yy, width, height);
+      if (tile == null) {
+        return;
+      }
+
+      dataBlock = makeDataBlock(resolution, size, gridPosition, tile);
+    }
+    finally {
+      nTile.incrementAndGet();
+      LOGGER.info("tile read complete {}/{}", nTile.get(), tileCount);
+      t0.stop();
+    }
+
+    Slf4JStopWatch t1 = stopWatch();
+    try {
+      n5.writeBlock(
+              pathName,
+              n5.getDatasetAttributes(pathName),
+              dataBlock
+      );
+      LOGGER.info("successfully wrote at {} to {}", gridPosition, pathName);
+    }
+    finally {
+      t1.stop("saveBytes");
+    }
+  }
+
   /**
    * Write all resolutions for the current series to an intermediate form.
    * Readers should be initialized and have the correct series state.
@@ -994,6 +1230,7 @@ public class Converter implements Callable<Void> {
     int sizeY;
     int imageCount;
     try {
+      isLittleEndian = workingReader.isLittleEndian();
       // calculate a reasonable pyramid depth if not specified as an argument
       if (pyramidResolutions == null) {
         int width = workingReader.getSizeX();
@@ -1023,16 +1260,27 @@ public class Converter implements Callable<Void> {
         sizeX, tileWidth, sizeY, tileHeight, imageCount
     );
 
-    // fileset level metadata
-    if (!noRootGroup) {
-      final ZarrGroup root = ZarrGroup.create(getRootPath());
-      Map<String, Object> attributes = new HashMap<String, Object>();
-      attributes.put("bioformats2n5.layout", LAYOUT);
-      root.writeAttributes(attributes);
-    }
+    N5Writer n5Writer = null;
 
-    // series level metadata
-    setSeriesLevelMetadata(series, resolutions);
+    if (n5.equals(fileType)) {
+      n5Writer = fileType.writer(getRootPath().toString());
+      n5Writer.setAttribute("/", "bioformats2n5.layout", LAYOUT);
+
+      // series level metadata
+      setSeriesLevelMetadata(n5Writer, series, resolutions);
+    }
+    else {
+      // fileset level metadata
+      if (!noRootGroup) {
+        final ZarrGroup root = ZarrGroup.create(getRootPath());
+        Map<String, Object> attributes = new HashMap<String, Object>();
+        attributes.put("bioformats2n5.layout", LAYOUT);
+        root.writeAttributes(attributes);
+
+        // series level metadata
+        setSeriesLevelMetadata(null, series, resolutions);
+      }
+    }
 
     for (int resCounter=0; resCounter<resolutions; resCounter++) {
       final int resolution = resCounter;
@@ -1052,18 +1300,32 @@ public class Converter implements Callable<Void> {
         activeTileHeight = scaledHeight;
       }
 
-      DataType dataType = getZarrType(pixelType);
       String resolutionString = String.format(
               scaleFormatString, getScaleFormatStringArgs(series, resolution));
-      ArrayParams arrayParams = new ArrayParams()
+      if (n5.equals(fileType)) {
+        org.janelia.saalfeldlab.n5.DataType dataType = getN5Type(pixelType);
+        Compression compression = ZarrCompression.getCompressor(compressionType,
+          compressionParameter);
+        n5Writer.createDataset(
+          resolutionString,
+          getDimensionsN5(workingReader, scaledWidth, scaledHeight),
+          new int[] {activeTileWidth, activeTileHeight, 1, 1, 1},
+          dataType, compression
+        );
+      }
+      else {
+        DataType dataType = getZarrType(pixelType);
+        ArrayParams arrayParams = new ArrayParams()
           .shape(getDimensions(
-              workingReader, scaledWidth, scaledHeight))
+            workingReader, scaledWidth, scaledHeight))
           .chunks(new int[] {1, 1, 1, activeTileHeight, activeTileWidth})
           .dataType(dataType)
           .nested(nested)
-          .compressor(CompressorFactory.create(
-              compressionType.toString(), compressionProperties));
-      ZarrArray.create(getRootPath().resolve(resolutionString), arrayParams);
+          .compressor(
+            CompressorFactory.create(compressionType.toString(),
+              compressionProperties));
+        ZarrArray.create(getRootPath().resolve(resolutionString), arrayParams);
+      }
 
       nTile = new AtomicInteger(0);
       tileCount = (int) Math.ceil((double) scaledWidth / tileWidth)
@@ -1105,7 +1367,14 @@ public class Converter implements Callable<Void> {
               futures.add(future);
               executor.execute(() -> {
                 try {
-                  processTile(series, resolution, plane, xx, yy, width, height);
+                  if (n5.equals(fileType)) {
+                    processTileN5(
+                      series, resolution, plane, xx, yy, width, height);
+                  }
+                  else {
+                    processTile(
+                      series, resolution, plane, xx, yy, width, height);
+                  }
                   LOGGER.info(
                       "Successfully processed tile; resolution={} plane={} " +
                       "xx={} yy={} width={} height={}",
@@ -1282,16 +1551,19 @@ public class Converter implements Callable<Void> {
   }
 
   /**
-   * Use {@link ZarrArray#writeAttributes(Map)}
+   * Use {@link ZarrArray#writeAttributes(Map)} or
+   * {@link N5Writer#setAttribute(String, String, Object)}
    * to attach the multiscales metadata to the group containing
    * the pyramids.
    *
+   * @param n5Writer N5 writer, can be null.
    * @param series Series which is currently being written.
    * @param resolutions Total number of resolutions from which
    *                    names will be generated.
    * @throws IOException
    */
-  private void setSeriesLevelMetadata(int series, int resolutions)
+  private void setSeriesLevelMetadata(@Nullable N5Writer n5Writer,
+                                      int series, int resolutions)
       throws IOException
   {
     String resolutionString = String.format(
@@ -1326,10 +1598,18 @@ public class Converter implements Callable<Void> {
       datasets.add(Collections.singletonMap("path", lastPath));
     }
     multiscale.put("datasets", datasets);
-    ZarrGroup subGroup = ZarrGroup.create(getRootPath().resolve(seriesString));
-    Map<String, Object> attributes = new HashMap<String, Object>();
-    attributes.put("multiscales", multiscales);
-    subGroup.writeAttributes(attributes);
+
+    if (n5.equals(fileType)) {
+      n5Writer.createGroup(seriesString);
+      n5Writer.setAttribute(seriesString, "multiscales", multiscales);
+    }
+    else {
+      ZarrGroup subGroup =
+        ZarrGroup.create(getRootPath().resolve(seriesString));
+      Map<String, Object> attributes = new HashMap<String, Object>();
+      attributes.put("multiscales", multiscales);
+      subGroup.writeAttributes(attributes);
+    }
   }
 
   /**
@@ -1555,7 +1835,81 @@ public class Converter implements Callable<Void> {
     }
   }
 
+  /**
+   * Convert Bio-Formats pixel type to N5 data type.
+   *
+   * @param type Bio-Formats pixel type
+   * @return corresponding N5 data type
+   */
+  private org.janelia.saalfeldlab.n5.DataType getN5Type(int type) {
+    switch (type) {
+      case FormatTools.INT8:
+        return org.janelia.saalfeldlab.n5.DataType.INT8;
+      case FormatTools.UINT8:
+        return org.janelia.saalfeldlab.n5.DataType.UINT8;
+      case FormatTools.INT16:
+        return org.janelia.saalfeldlab.n5.DataType.INT16;
+      case FormatTools.UINT16:
+        return org.janelia.saalfeldlab.n5.DataType.UINT16;
+      case FormatTools.INT32:
+        return org.janelia.saalfeldlab.n5.DataType.INT32;
+      case FormatTools.UINT32:
+        return org.janelia.saalfeldlab.n5.DataType.UINT32;
+      case FormatTools.FLOAT:
+        return org.janelia.saalfeldlab.n5.DataType.FLOAT32;
+      case FormatTools.DOUBLE:
+        return org.janelia.saalfeldlab.n5.DataType.FLOAT64;
+      default:
+        throw new IllegalArgumentException("Unsupported pixel type: "
+                + FormatTools.getPixelTypeString(type));
+    }
+  }
+
+  private DataBlock<?> makeDataBlock(
+          int resolution, int[] size, long[] gridPosition, byte[] tile)
+          throws FormatException
+  {
+    ByteBuffer bb = ByteBuffer.wrap(tile);
+    if (resolution == 0 && isLittleEndian) {
+      bb = bb.order(ByteOrder.LITTLE_ENDIAN);
+    }
+    switch (pixelType) {
+      case FormatTools.INT8:
+      case FormatTools.UINT8: {
+        return new ByteArrayDataBlock(size, gridPosition, tile);
+      }
+      case FormatTools.INT16:
+      case FormatTools.UINT16: {
+        short[] asShort = new short[tile.length / 2];
+        bb.asShortBuffer().get(asShort);
+        return new ShortArrayDataBlock(size, gridPosition, asShort);
+      }
+      case FormatTools.INT32:
+      case FormatTools.UINT32: {
+        int[] asInt = new int[tile.length / 4];
+        bb.asIntBuffer().get(asInt);
+        return new IntArrayDataBlock(size, gridPosition, asInt);
+      }
+      case FormatTools.FLOAT: {
+        float[] asFloat = new float[tile.length / 4];
+        bb.asFloatBuffer().get(asFloat);
+        return new FloatArrayDataBlock(size, gridPosition, asFloat);
+      }
+      case FormatTools.DOUBLE: {
+        double[] asDouble = new double[tile.length / 8];
+        bb.asDoubleBuffer().get(asDouble);
+        return new DoubleArrayDataBlock(size, gridPosition, asDouble);
+      }
+      default:
+        throw new FormatException("Unsupported pixel type: "
+                + FormatTools.getPixelTypeString(pixelType));
+    }
+  }
+
   private void checkOutputPaths() {
+    if (pyramidName == null && n5.equals(fileType)) {
+      pyramidName = "data.n5";
+    }
     if (pyramidName != null || !scaleFormatString.equals("%d/%d")) {
       LOGGER.info("Output will be incompatible with raw2ometiff " +
               "(pyramidName: {}, scaleFormatString: {})",
