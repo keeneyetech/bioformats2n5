@@ -7,7 +7,7 @@ on: [push]
 
 env:
   REGISTRY: docker.pkg.github.com
-  IMAGE: keeneyetech/bioformats2raw/bioformats2raw
+  IMAGE: keeneyetech/bioformats2n5/bioformats2n5
 
 jobs:
   build:
@@ -49,6 +49,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: build/distributions/bioformats2raw*.zip
+          files: build/distributions/bioformats2n5*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
