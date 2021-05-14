@@ -5,13 +5,17 @@ name: Java CI with Gradle
 
 on: [push]
 
+env:
+  REGISTRY: docker.pkg.github.com
+  IMAGE: keeneyetech/bioformats2raw/bioformats2raw
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2.3.4
-      - name: install dependencies
+      - name: Install dependencies
         run: sudo apt update && sudo apt install libblosc1
       - name: Set up JDK 11
         uses: actions/setup-java@v2
@@ -24,12 +28,28 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master'
+    # if: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
-      - uses: actions/checkout@v2.3.4
-      - name: publish package
+      - name: Checkout master
+        uses: actions/checkout@v2.3.4
+        with:
+          ref: master
+      - name: Get latest master commit hash
+        id: master-commit-hash
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u publisher --password-stdin docker.pkg.github.com
-          docker build -t docker.pkg.github.com/keeneyetech/bioformats2raw/bioformats2raw .
-          docker push docker.pkg.github.com/keeneyetech/bioformats2raw/bioformats2raw
+          hash=$(git log -n1 --format=format:"%H")
+          echo "::set-output name=master-hash::${hash}"
+          echo $hash
+      - uses: actions/checkout@v2.3.4
+      - name: Publish package
+        run: |
+          REF=${GITHUB_REF##*/}
+          [[ REF == 'master' ]] && LATEST=true
+          # check if the tag is on master by comparing the commit hash with the latest commit hash on master
+          [[ REF != 'master' ]] && [[ ${{ steps.master-commit-hash.outputs.master-hash }} == $GITHUB_SHA ]] && LATEST=true && TAG=$REF
+          [[ $LATEST == true ]] && REF=latest
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u publisher --password-stdin $REGISTRY
+          docker build -t $REGISTRY/$IMAGE:$REF .
+          [[ -v TAG ]] && docker tag $REGISTRY/$IMAGE:$REF $REGISTRY/$IMAGE:$TAG
+          docker push $REGISTRY/$IMAGE --all-tags
