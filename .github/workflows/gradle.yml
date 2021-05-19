@@ -8,6 +8,10 @@ on: [push]
 env:
   REGISTRY: docker.pkg.github.com
   IMAGE: keeneyetech/bioformats2raw/bioformats2raw
+  REF:
+  TAG:
+  LATEST: false
+  TAGGED: false
 
 jobs:
   build:
@@ -24,13 +28,6 @@ jobs:
           distribution: 'adopt'
       - name: Build with Gradle
         run: ./gradlew build
-
-  release:
-    runs-on: ubuntu-latest
-    needs: build
-    # if: ${{ github.ref == 'refs/heads/master' }}
-
-    steps:
       - name: Checkout master
         uses: actions/checkout@v2.3.4
         with:
@@ -45,11 +42,18 @@ jobs:
       - name: Publish package
         run: |
           REF=${GITHUB_REF##*/}
-          [[ REF == 'master' ]] && LATEST=true
+          [[ $REF == 'master' ]] && LATEST=true
           # check if the tag is on master by comparing the commit hash with the latest commit hash on master
-          [[ REF != 'master' ]] && [[ ${{ steps.master-commit-hash.outputs.master-hash }} == $GITHUB_SHA ]] && LATEST=true && TAG=$REF
+          [[ $REF != 'master' ]] && [[ ${{ steps.master-commit-hash.outputs.master-hash }} == $GITHUB_SHA ]] && LATEST=true && TAGGED=true && TAG=$REF
           [[ $LATEST == true ]] && REF=latest
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u publisher --password-stdin $REGISTRY
           docker build -t $REGISTRY/$IMAGE:$REF .
-          [[ -v TAG ]] && docker tag $REGISTRY/$IMAGE:$REF $REGISTRY/$IMAGE:$TAG
+          [[ $TAGGED == true ]] && docker tag $REGISTRY/$IMAGE:$REF $REGISTRY/$IMAGE:$TAG
           docker push $REGISTRY/$IMAGE --all-tags
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: ${{ env.TAGGED == true }}
+        with:
+          files: build/distributions/bioformats2raw*zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
