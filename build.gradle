@@ -5,10 +5,10 @@ plugins {
     id 'checkstyle'
 }
 
-group = 'com.glencoesoftware'
+group = 'ai.keeneye'
 version = '0.3.0-SNAPSHOT'
 
-mainClassName = 'com.glencoesoftware.bioformats2raw.Converter'
+mainClassName = 'ai.keeneye.bioformats2n5.Converter'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -28,7 +28,7 @@ repositories {
         url 'https://maven.scijava.org/content/groups/public'
     }
     maven {
-        url 'http://nexus.senbox.net/nexus/content/groups/public'
+        url 'https://nexus.senbox.net/nexus/content/groups/public'
     }
 }
 
@@ -77,24 +77,6 @@ distributions {
             from("$projectDir") {
                 include 'README.md'
                 include 'LICENSE.txt'
-            }
-        }
-    }
-}
-
-publishing {
-    publications {
-        bioformats2raw(MavenPublication) {
-            from components.java
-        }
-    }
-
-    repositories {
-        maven {
-            url 'https://repo.glencoesoftware.com/repository/bioformats2raw2ometiff/'
-            credentials {
-               username = project.properties.ArtifactoryUserName
-               password = project.properties.ArtifactoryPassword
             }
         }
     }

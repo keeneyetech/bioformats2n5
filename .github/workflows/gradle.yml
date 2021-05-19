@@ -8,26 +8,12 @@ on: [push]
 env:
   REGISTRY: docker.pkg.github.com
   IMAGE: keeneyetech/bioformats2raw/bioformats2raw
-  REF:
-  TAG:
-  LATEST: false
-  TAGGED: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install libblosc1
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-      - name: Build with Gradle
-        run: ./gradlew build
       - name: Checkout master
         uses: actions/checkout@v2.3.4
         with:
@@ -39,21 +25,30 @@ jobs:
           echo "::set-output name=master-hash::${hash}"
           echo $hash
       - uses: actions/checkout@v2.3.4
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install libblosc1
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+      - name: Build with Gradle
+        run: ./gradlew build
       - name: Publish package
         run: |
           REF=${GITHUB_REF##*/}
           [[ $REF == 'master' ]] && LATEST=true
           # check if the tag is on master by comparing the commit hash with the latest commit hash on master
-          [[ $REF != 'master' ]] && [[ ${{ steps.master-commit-hash.outputs.master-hash }} == $GITHUB_SHA ]] && LATEST=true && TAGGED=true && TAG=$REF
+          [[ $REF != 'master' ]] && [[ ${{ steps.master-commit-hash.outputs.master-hash }} == $GITHUB_SHA ]] && LATEST=true &&  TAG=$REF
           [[ $LATEST == true ]] && REF=latest
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u publisher --password-stdin $REGISTRY
           docker build -t $REGISTRY/$IMAGE:$REF .
-          [[ $TAGGED == true ]] && docker tag $REGISTRY/$IMAGE:$REF $REGISTRY/$IMAGE:$TAG
+          [[ -v TAG ]] && docker tag $REGISTRY/$IMAGE:$REF $REGISTRY/$IMAGE:$TAG
           docker push $REGISTRY/$IMAGE --all-tags
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: ${{ env.TAGGED == true }}
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: build/distributions/bioformats2raw*zip
+          files: build/distributions/bioformats2raw*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

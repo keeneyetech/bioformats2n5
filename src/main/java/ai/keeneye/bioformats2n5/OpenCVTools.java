@@ -5,7 +5,7 @@
  * file you can find at the root of the distribution bundle.  If the file is
  * missing please request a copy by contacting info@glencoesoftware.com
  */
-package com.glencoesoftware.bioformats2raw;
+package ai.keeneye.bioformats2n5;
 
 import loci.common.DataTools;
 import loci.formats.FormatTools;

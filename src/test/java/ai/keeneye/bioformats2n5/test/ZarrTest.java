@@ -5,7 +5,7 @@
  * file you can find at the root of the distribution bundle.  If the file is
  * missing please request a copy by contacting info@glencoesoftware.com
  */
-package com.glencoesoftware.bioformats2raw.test;
+package ai.keeneye.bioformats2n5.test;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,8 +27,8 @@ import com.bc.zarr.ZarrArray;
 import com.bc.zarr.ZarrGroup;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.glencoesoftware.bioformats2raw.Converter;
-import com.glencoesoftware.bioformats2raw.Downsampling;
+import ai.keeneye.bioformats2n5.Converter;
+import ai.keeneye.bioformats2n5.Downsampling;
 import loci.common.LogbackTools;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatTools;
@@ -222,7 +222,7 @@ public class ZarrTest {
     assertTool();
     ZarrGroup z = ZarrGroup.open(output.toString());
     Integer layout = (Integer)
-        z.getAttributes().get("bioformats2raw.layout");
+        z.getAttributes().get("bioformats2n5.layout");
     ZarrArray series0 = ZarrGroup.open(output.resolve("0")).openArray("0");
     assertTrue(series0.getNested());
     // Also ensure we're using the latest .zarray metadata

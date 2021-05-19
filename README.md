@@ -1,8 +1,11 @@
-bioformats2raw converter
+bioformats2n5 converter
 ========================
+_Important note_: This repository has been forked from https://github.com/glencoesoftware/bioformats2raw by Glencoe Software. 
+We mainly restored the N5 support and to signal this we renamed the project. 
+
 
 Java application to convert image file formats, including .mrxs,
-to an intermediate Zarr structure.
+to an intermediate N5 or Zarr structure.
 The [raw2ometiff](https://github.com/glencoesoftware/raw2ometiff)
 application can then be used to produce a
 Bio-Formats 5.9.x ("Faas") or Bio-Formats 6.x (true OME-TIFF) pyramid.
@@ -28,46 +31,39 @@ Development Installation
 
 1. Clone the repository:
 
-    git clone git@github.com:glencoesoftware/bioformats2raw.git
+    git clone git@github.com:keeneyetech/bioformats2n5.git
 
 2. Run the Gradle build as required, a list of available tasks can be found by running:
 
     ./gradlew tasks
-
-Eclipse Configuration
-=====================
-
-1. Run the Gradle Eclipse task:
-
-    ./gradlew eclipse
 
 Usage
 =====
 
 Run the conversion:
 
-    bioformats2raw /path/to/file.mrxs /path/to/zarr-pyramid --resolutions 6
-    bioformats2raw /path/to/file.svs /path/to/zarr-pyramid --resolutions 6
+    bioformats2n5 /path/to/file.mrxs /path/to/zarr-pyramid --resolutions 6
+    bioformats2n5 /path/to/file.svs /path/to/zarr-pyramid --resolutions 6
 
 Maximum tile dimensions are can be configured with the `--tile_width` and `--tile_height` options.  Defaults can be viewed with
-`bioformats2raw --help`.  `--resolutions` is optional; if omitted, the number of resolutions is set so that the smallest
+`bioformats2n5 --help`.  `--resolutions` is optional; if omitted, the number of resolutions is set so that the smallest
 resolution is no greater than 256x256.
 
 If the input file has multiple series, a subset of the series can be converted by specifying a comma-separated list of indexes:
 
-    bioformats2raw /path/to/file.scn /path/to/zarr-pyramid --series 0,2,3,4
+    bioformats2n5 /path/to/file.scn /path/to/zarr-pyramid --series 0,2,3,4
 
 By default, two additional readers (MiraxReader and PyramidTiffReader) are added to the beginning of Bio-Formats' list of reader classes.
 Either or both of these readers can be excluded with the `--extra-readers` option:
 
     # only include the reader for .mrxs, exclude the reader for Faas pyramids
-    bioformats2raw /path/to/file.tiff /path/to/zarr-pyramid --extra-readers com.glencoesoftware.bioformats2raw.MiraxReader
+    bioformats2n5 /path/to/file.tiff /path/to/zarr-pyramid --extra-readers MiraxReader
     # don't add any additional readers, just use the ones provided by Bio-Formats
-    bioformats2raw /path/to/file.mrxs /path/to/zarr-pyramid --extra-readers
+    bioformats2n5 /path/to/file.mrxs /path/to/zarr-pyramid --extra-readers
 
 Reader-specific options can be specified using `--options`:
 
-    bioformats2raw /path/to/file.mrxs /path/to/zarr-pyramid --options mirax.use_metadata_dimensions=false
+    bioformats2n5 /path/to/file.mrxs /path/to/zarr-pyramid --options mirax.use_metadata_dimensions=false
 
 Be aware when experimenting with different values for `--options` that the corresponding memo (cache) file may need to be
 removed in order for new options to take effect.  This file will be e.g. `/path/to/.file.mrxs.bfmemo`.
@@ -87,11 +83,11 @@ dimension order, unless `--dimension-order` was specified.
 Version 0.3.0 uses the `TCZYX` order by default, for compatibility with https://ngff.openmicroscopy.org/0.2/#image-layout.
 The `--dimension-order` option can still be used to set a specific output dimension order, e.g.:
 
-    bioformats2raw /path/to/file.mrxs /path/to/zarr-pyramid --dimension-order XYCZT
+    bioformats2n5 /path/to/file.mrxs /path/to/zarr-pyramid --dimension-order XYCZT
 
 or can be set to use the input file's ordering, preserving the behavior of 0.2.6:
 
-    bioformats2raw /path/to/file.mrxs /path/to/zarr-pyramid --dimension-order original
+    bioformats2n5 /path/to/file.mrxs /path/to/zarr-pyramid --dimension-order original
 
 If a specific dimension order is passed to `--dimension-order`, it must be a valid dimension order as defined in
 the [OME 2016-06 schema](https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome_xsd.html#Pixels_DimensionOrder).

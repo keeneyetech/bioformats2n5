@@ -5,7 +5,7 @@
  * file you can find at the root of the distribution bundle.  If the file is
  * missing please request a copy by contacting info@glencoesoftware.com
  */
-package com.glencoesoftware.bioformats2raw;
+package ai.keeneye.bioformats2n5;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,7 +68,6 @@ import com.bc.zarr.CompressorFactory;
 import com.bc.zarr.DataType;
 import com.bc.zarr.ZarrArray;
 import com.bc.zarr.ZarrGroup;
-import com.glencoesoftware.bioformats2raw.MiraxReader.TilePointer;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.univocity.parsers.csv.CsvParser;
@@ -104,7 +103,7 @@ public class Converter implements Callable<Void> {
   /** Scaling factor in X and Y between any two consecutive resolutions. */
   private static final int PYRAMID_SCALE = 2;
 
-  /** Version of the bioformats2raw layout. */
+  /** Version of the bioformats2n5 layout. */
   public static final Integer LAYOUT = 3;
 
   @Parameters(
@@ -407,7 +406,7 @@ public class Converter implements Callable<Void> {
   {
     checkOutputPaths();
 
-    Cache<TilePointer, byte[]> tileCache = CacheBuilder.newBuilder()
+    Cache<MiraxReader.TilePointer, byte[]> tileCache = CacheBuilder.newBuilder()
         .maximumSize(maxCachedTiles)
         .build();
 
@@ -1028,7 +1027,7 @@ public class Converter implements Callable<Void> {
     if (!noRootGroup) {
       final ZarrGroup root = ZarrGroup.create(getRootPath());
       Map<String, Object> attributes = new HashMap<String, Object>();
-      attributes.put("bioformats2raw.layout", LAYOUT);
+      attributes.put("bioformats2n5.layout", LAYOUT);
       root.writeAttributes(attributes);
     }
 

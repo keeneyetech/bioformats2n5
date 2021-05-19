@@ -6,7 +6,7 @@
  * missing please request a copy by contacting info@glencoesoftware.com
  */
 
-package com.glencoesoftware.bioformats2raw;
+package ai.keeneye.bioformats2n5;
 
 import java.io.IOException;
 import java.util.List;
