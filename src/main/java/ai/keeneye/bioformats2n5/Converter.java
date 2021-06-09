@@ -344,6 +344,12 @@ public class Converter implements Callable<Void> {
   private volatile boolean noHCS = false;
 
   @Option(
+    names = "--noPix",
+    description = "Save only metadata no pixel data"
+  )
+  private volatile boolean noPix = true;
+
+  @Option(
           names = "--no-root-group",
           description = "Turn off creation of root group and corresponding " +
                         "metadata [Will break compatibility with raw2ometiff]"
@@ -589,15 +595,15 @@ public class Converter implements Callable<Void> {
       if (!noHCS) {
         scaleFormatString = "%d/%d/%d/%d";
       }
-
-      for (Integer index : seriesList) {
-        try {
-          write(index);
-        }
-        catch (Throwable t) {
-          LOGGER.error("Error while writing series {}", index, t);
-          unwrapException(t);
-          return;
+      if (!noPix) {
+        for (Integer index : seriesList) {
+          try {
+            write(index);
+          } catch (Throwable t) {
+            LOGGER.error("Error while writing series {}", index, t);
+            unwrapException(t);
+            return;
+          }
         }
       }
 
