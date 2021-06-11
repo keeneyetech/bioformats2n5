@@ -599,7 +599,8 @@ public class Converter implements Callable<Void> {
         for (Integer index : seriesList) {
           try {
             write(index);
-          } catch (Throwable t) {
+          }
+          catch (Throwable t) {
             LOGGER.error("Error while writing series {}", index, t);
             unwrapException(t);
             return;
