@@ -347,7 +347,7 @@ public class Converter implements Callable<Void> {
     names = "--noPix",
     description = "Save only metadata no pixel data"
   )
-  private volatile boolean noPix = true;
+  private volatile boolean noPix = false;
 
   @Option(
           names = "--no-root-group",
