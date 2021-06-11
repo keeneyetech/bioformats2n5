@@ -39,12 +39,13 @@ import picocli.CommandLine.ExecutionException;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 
-import static org.junit.Assert.assertFalse;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,8 +96,9 @@ public class N5Test {
       converter = new Converter();
       CommandLine.call(converter, args.toArray(new String[]{}));
       if (metadataOnly)  {
-        Assertions.assertFalse(Files.exists(output.resolve("data.n5")));
-      } else {
+        assertFalse(Files.exists(output.resolve("data.n5")));
+      } else
+      {
         assertTrue(Files.exists(output.resolve("data.n5")));
       }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
