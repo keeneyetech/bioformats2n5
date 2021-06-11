@@ -32,7 +32,6 @@ import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.services.OMEXMLService;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.junit.jupiter.api.Assertions;
 import picocli.CommandLine;
 import picocli.CommandLine.ExecutionException;
 
@@ -95,10 +94,10 @@ public class N5Test {
     try {
       converter = new Converter();
       CommandLine.call(converter, args.toArray(new String[]{}));
-      if (metadataOnly)  {
+      if (metadataOnly) {
         assertFalse(Files.exists(output.resolve("data.n5")));
-      } else
-      {
+      }
+      else {
         assertTrue(Files.exists(output.resolve("data.n5")));
       }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
