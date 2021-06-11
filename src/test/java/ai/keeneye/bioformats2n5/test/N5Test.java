@@ -32,12 +32,14 @@ import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.services.OMEXMLService;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.junit.jupiter.api.Assertions;
 import picocli.CommandLine;
 import picocli.CommandLine.ExecutionException;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -79,8 +81,12 @@ public class N5Test {
    */
   void assertTool(String... additionalArgs) throws IOException {
     List<String> args = new ArrayList<String>();
+    boolean metadataOnly = false;
     for (String arg : additionalArgs) {
       args.add(arg);
+      if (arg == "--noPix") {
+        metadataOnly = true;
+      }
     }
     args.add("--file_type=n5");
     args.add(input.toString());
@@ -88,7 +94,11 @@ public class N5Test {
     try {
       converter = new Converter();
       CommandLine.call(converter, args.toArray(new String[]{}));
-      assertTrue(Files.exists(output.resolve("data.n5")));
+      if (metadataOnly)  {
+        Assertions.assertFalse(Files.exists(output.resolve("data.n5")));
+      } else {
+        assertTrue(Files.exists(output.resolve("data.n5")));
+      }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
     }
     catch (RuntimeException rt) {
@@ -579,6 +589,15 @@ public class N5Test {
       assertEquals("Bio-Formats " + FormatTools.VERSION, version);
       assertEquals("loci.common.image.SimpleImageScaler", method);
     }
+  }
+
+  /**
+   * Test nopIx arg.
+   */
+  @Test
+  public void testNoPixArg() throws Exception {
+    input = fake();
+    assertTool("--noPix");
   }
 
 }
