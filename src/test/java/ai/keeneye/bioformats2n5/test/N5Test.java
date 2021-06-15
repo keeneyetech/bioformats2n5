@@ -84,7 +84,7 @@ public class N5Test {
     boolean metadataOnly = false;
     for (String arg : additionalArgs) {
       args.add(arg);
-      if (arg == "--noPix") {
+      if (arg == "--no-pixel-data") {
         metadataOnly = true;
       }
     }
@@ -598,7 +598,7 @@ public class N5Test {
   @Test
   public void testNoPixArg() throws Exception {
     input = fake();
-    assertTool("--noPix");
+    assertTool("--no-pixel-data");
   }
 
 }

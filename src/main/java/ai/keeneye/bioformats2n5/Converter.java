@@ -344,7 +344,7 @@ public class Converter implements Callable<Void> {
   private volatile boolean noHCS = false;
 
   @Option(
-    names = "--noPix",
+    names = "--no-pixel-data",
     description = "Save only metadata no pixel data"
   )
   private volatile boolean noPix = false;
