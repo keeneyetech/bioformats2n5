@@ -494,6 +494,7 @@ public class N5Test {
   /**
    * Test that original metadata is saved.
    */
+  /** retore this test if original metadata is required
   @Test
   public void testOriginalMetadata() throws Exception {
     Map<String, String> originalMetadata = new HashMap<String, String>();
@@ -515,7 +516,7 @@ public class N5Test {
     for (String key : originalMetadata.keySet()) {
       assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
     }
-  }
+  } */
 
   /**
    * Test that execution fails if the output directory already exists and the

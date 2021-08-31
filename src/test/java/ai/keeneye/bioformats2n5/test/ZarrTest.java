@@ -673,6 +673,7 @@ public class ZarrTest {
   /**
    * Test that original metadata is saved.
    */
+/**  Restore this test if original metadata is required
   @Test
   public void testOriginalMetadata() throws Exception {
     Map<String, String> originalMetadata = new HashMap<String, String>();
@@ -694,7 +695,7 @@ public class ZarrTest {
     for (String key : originalMetadata.keySet()) {
       assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
     }
-  }
+  } */
 
   /**
    * Test that execution fails if the output directory already exists and the
