@@ -496,11 +496,11 @@ public class N5Test {
     assertEquals(50, tile.get(75 * 4));
   }
 
+  // restore this test if original metadata is required
   /**
    * Test that original metadata is saved.
    */
-  /** retore this test if original metadata is required
-  @Test
+  /* @Test
   public void testOriginalMetadata() throws Exception {
     Map<String, String> originalMetadata = new HashMap<String, String>();
     originalMetadata.put("key1", "value1");
