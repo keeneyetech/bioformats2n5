@@ -17,7 +17,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -33,7 +32,11 @@ import loci.common.LogbackTools;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatTools;
 import loci.formats.in.FakeReader;
-import loci.formats.ome.OMEXMLMetadata;
+
+// imports for originalMetaData tests
+// import java.util.Hashtable;
+// import loci.formats.ome.OMEXMLMetadata;
+
 import loci.formats.services.OMEXMLService;
 import ome.xml.model.OME;
 import ome.xml.model.Pixels;

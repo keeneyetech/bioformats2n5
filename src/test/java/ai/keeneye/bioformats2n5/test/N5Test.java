@@ -17,7 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -25,11 +25,16 @@ import java.util.stream.Stream;
 import ai.keeneye.bioformats2n5.Converter;
 import ai.keeneye.bioformats2n5.Downsampling;
 import loci.common.LogbackTools;
-import loci.common.services.ServiceFactory;
+
 import loci.formats.FormatTools;
 import loci.formats.in.FakeReader;
-import loci.formats.ome.OMEXMLMetadata;
-import loci.formats.services.OMEXMLService;
+
+// imports for originalMetadata tests
+// import java.util.Hashtable;
+// import loci.common.services.ServiceFactory;
+// import loci.formats.ome.OMEXMLMetadata;
+// import loci.formats.services.OMEXMLService;
+
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import picocli.CommandLine;
