@@ -674,7 +674,7 @@ public class ZarrTest {
   }
 
   //Restore this test if original metadata is required
-  /**
+  /*
    * Test that original metadata is saved.
    */
 /*

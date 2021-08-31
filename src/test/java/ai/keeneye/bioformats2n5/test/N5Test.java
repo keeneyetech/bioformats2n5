@@ -497,7 +497,7 @@ public class N5Test {
   }
 
   // restore this test if original metadata is required
-  /**
+  /*
    * Test that original metadata is saved.
    */
   /* @Test
