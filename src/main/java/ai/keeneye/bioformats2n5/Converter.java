@@ -487,7 +487,8 @@ public class Converter implements Callable<Void> {
         memoizer.setMetadataOptions(options);
       }
 
-      memoizer.setOriginalMetadataPopulated(true);
+      // set this flag to true if original metadata is required
+      memoizer.setOriginalMetadataPopulated(false);
       memoizer.setFlattenedResolutions(false);
       memoizer.setMetadataFiltered(true);
       memoizer.setMetadataStore(createMetadata());

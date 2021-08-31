@@ -17,7 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -25,11 +25,16 @@ import java.util.stream.Stream;
 import ai.keeneye.bioformats2n5.Converter;
 import ai.keeneye.bioformats2n5.Downsampling;
 import loci.common.LogbackTools;
-import loci.common.services.ServiceFactory;
+
 import loci.formats.FormatTools;
 import loci.formats.in.FakeReader;
-import loci.formats.ome.OMEXMLMetadata;
-import loci.formats.services.OMEXMLService;
+
+// imports for originalMetadata tests
+// import java.util.Hashtable;
+// import loci.common.services.ServiceFactory;
+// import loci.formats.ome.OMEXMLMetadata;
+// import loci.formats.services.OMEXMLService;
+
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import picocli.CommandLine;
@@ -491,10 +496,11 @@ public class N5Test {
     assertEquals(50, tile.get(75 * 4));
   }
 
-  /**
+  // restore this test if original metadata is required
+  /*
    * Test that original metadata is saved.
    */
-  @Test
+  /* @Test
   public void testOriginalMetadata() throws Exception {
     Map<String, String> originalMetadata = new HashMap<String, String>();
     originalMetadata.put("key1", "value1");
@@ -515,7 +521,7 @@ public class N5Test {
     for (String key : originalMetadata.keySet()) {
       assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
     }
-  }
+  } */
 
   /**
    * Test that execution fails if the output directory already exists and the

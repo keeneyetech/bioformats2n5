@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'ai.keeneye'
-version = '0.3.1-SNAPSHOT'
+version = '0.4.0'
 
 mainClassName = 'ai.keeneye.bioformats2n5.Converter'
 sourceCompatibility = 1.8
@@ -38,7 +38,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation 'ome:formats-gpl:6.5.1'
+    implementation 'ome:formats-gpl:6.7.0'
     implementation 'info.picocli:picocli:4.2.0'
     implementation 'com.univocity:univocity-parsers:2.8.4'
     implementation 'com.bc.zarr:jzarr:0.3.3-gs-SNAPSHOT'
