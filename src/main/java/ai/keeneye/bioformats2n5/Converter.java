@@ -7,7 +7,9 @@
  */
 package ai.keeneye.bioformats2n5;
 
+import java.io.DataOutput;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -32,6 +34,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import loci.common.Constants;
 import loci.common.DataTools;
 import loci.common.image.IImageScaler;
@@ -459,6 +464,13 @@ public class Converter implements Callable<Void> {
         "--fill-value not yet supported for " + readerClass);
     }
 
+    // no need to instantiate lots of workers
+    // if only the metadata is being read
+    if (noPix) {
+      maxWorkers = 1;
+    }
+
+
     // Now with our found type instantiate our queue of readers for use
     // during conversion
     for (int i=0; i < maxWorkers; i++) {
@@ -505,11 +517,35 @@ public class Converter implements Callable<Void> {
         ((MiraxReader) reader).setTileCache(tileCache);
       }
       readers.add(separator);
+
+      if (noPix) {
+        // write the file format string to json
+        String format = reader.getFormat();
+        JsonFactory factory = new JsonFactory();
+        // Create JsonGenerator
+        if (!Files.exists(outputPath)) {
+          Files.createDirectories(outputPath);
+        }
+        String jpath = outputPath + "/format.json";
+        File f = new File(jpath);
+        JsonGenerator generator = factory.createGenerator(f, JsonEncoding.UTF8);
+        generator.writeStartObject(); // Start with left brace i.e. {
+        // Add string field
+        generator.writeStringField("format", format);
+        generator.writeEndObject(); // End with right brace i.e }
+        generator.close();
+      }
+
+      // stop after the first reader if only one tile in the image
+      if (reader.getOptimalTileWidth() == reader.getSizeX()  && reader.getOptimalTileHeight() == reader.getSizeY()) {
+        break;
+      }
     }
 
     // Finally, perform conversion on all series
     try {
       IFormatReader v = readers.take();
+
       IMetadata meta = null;
       try {
         meta = (IMetadata) v.getMetadataStore();
