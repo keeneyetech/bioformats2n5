@@ -43,11 +43,13 @@ import picocli.CommandLine.ExecutionException;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,8 +86,12 @@ public class N5Test {
    */
   void assertTool(String... additionalArgs) throws IOException {
     List<String> args = new ArrayList<String>();
+    boolean metadataOnly = false;
     for (String arg : additionalArgs) {
       args.add(arg);
+      if (arg == "--no-pixel-data") {
+        metadataOnly = true;
+      }
     }
     args.add("--file_type=n5");
     args.add(input.toString());
@@ -93,7 +99,12 @@ public class N5Test {
     try {
       converter = new Converter();
       CommandLine.call(converter, args.toArray(new String[]{}));
-      assertTrue(Files.exists(output.resolve("data.n5")));
+      if (metadataOnly) {
+        assertFalse(Files.exists(output.resolve("data.n5")));
+      }
+      else {
+        assertTrue(Files.exists(output.resolve("data.n5")));
+      }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
     }
     catch (RuntimeException rt) {
@@ -585,6 +596,15 @@ public class N5Test {
       assertEquals("Bio-Formats " + FormatTools.VERSION, version);
       assertEquals("loci.common.image.SimpleImageScaler", method);
     }
+  }
+
+  /**
+   * Test nopIx arg.
+   */
+  @Test
+  public void testNoPixArg() throws Exception {
+    input = fake();
+    assertTool("--no-pixel-data");
   }
 
 }
