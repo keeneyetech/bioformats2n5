@@ -518,7 +518,8 @@ public class Converter implements Callable<Void> {
       format = reader.getFormat();
 
       // stop after the first reader if only one tile in the image
-      if (reader.getOptimalTileWidth() == reader.getSizeX()  && reader.getOptimalTileHeight() == reader.getSizeY()) {
+      if (reader.getOptimalTileWidth() == reader.getSizeX()
+        && reader.getOptimalTileHeight() == reader.getSizeY()) {
         break;
       }
     }
@@ -608,7 +609,8 @@ public class Converter implements Callable<Void> {
           // Create JsonGenerator
           String jpath = metadataPath + "/format.json";
           File f = new File(jpath);
-          JsonGenerator generator = factory.createGenerator(f, JsonEncoding.UTF8);
+          JsonGenerator generator
+            = factory.createGenerator(f, JsonEncoding.UTF8);
           generator.writeStartObject(); // Start with left brace i.e. {
           // Add string field
           generator.writeStringField("format", format);
