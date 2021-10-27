@@ -470,6 +470,8 @@ public class Converter implements Callable<Void> {
       maxWorkers = 1;
     }
 
+    String format = "";
+
 
     // Now with our found type instantiate our queue of readers for use
     // during conversion
@@ -518,23 +520,7 @@ public class Converter implements Callable<Void> {
       }
       readers.add(separator);
 
-      if (noPix) {
-        // write the file format string to json
-        String format = reader.getFormat();
-        JsonFactory factory = new JsonFactory();
-        // Create JsonGenerator
-        if (!Files.exists(outputPath)) {
-          Files.createDirectories(outputPath);
-        }
-        String jpath = outputPath + "/format.json";
-        File f = new File(jpath);
-        JsonGenerator generator = factory.createGenerator(f, JsonEncoding.UTF8);
-        generator.writeStartObject(); // Start with left brace i.e. {
-        // Add string field
-        generator.writeStringField("format", format);
-        generator.writeEndObject(); // End with right brace i.e }
-        generator.close();
-      }
+      format = reader.getFormat();
 
       // stop after the first reader if only one tile in the image
       if (reader.getOptimalTileWidth() == reader.getSizeX()  && reader.getOptimalTileHeight() == reader.getSizeY()) {
@@ -620,6 +606,20 @@ public class Converter implements Callable<Void> {
         }
         Path omexmlFile = metadataPath.resolve(METADATA_FILE);
         Files.write(omexmlFile, xml.getBytes(Constants.ENCODING));
+
+        if (noPix) {
+          // write the file format string to json
+          JsonFactory factory = new JsonFactory();
+          // Create JsonGenerator
+          String jpath = metadataPath + "/format.json";
+          File f = new File(jpath);
+          JsonGenerator generator = factory.createGenerator(f, JsonEncoding.UTF8);
+          generator.writeStartObject(); // Start with left brace i.e. {
+          // Add string field
+          generator.writeStringField("format", format);
+          generator.writeEndObject(); // End with right brace i.e }
+          generator.close();
+        }
       }
       catch (ServiceException se) {
         LOGGER.error("Could not retrieve OME-XML", se);

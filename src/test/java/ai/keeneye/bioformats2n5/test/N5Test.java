@@ -101,9 +101,12 @@ public class N5Test {
       CommandLine.call(converter, args.toArray(new String[]{}));
       if (metadataOnly) {
         assertFalse(Files.exists(output.resolve("data.n5")));
+        assertTrue(Files.exists(output.resolve("format.json")));
       }
       else {
         assertTrue(Files.exists(output.resolve("data.n5")));
+        assertTrue(Files.exists(output.resolve("format.json")));
+      }
       }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
     }
