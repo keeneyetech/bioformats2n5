@@ -6,10 +6,7 @@
  * missing please request a copy by contacting info@glencoesoftware.com
  */
 package ai.keeneye.bioformats2n5;
-
-import java.io.DataOutput;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -33,7 +30,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -471,7 +467,6 @@ public class Converter implements Callable<Void> {
     }
 
     String format = "";
-
 
     // Now with our found type instantiate our queue of readers for use
     // during conversion
