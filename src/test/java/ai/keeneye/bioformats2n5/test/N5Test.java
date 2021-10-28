@@ -105,7 +105,7 @@ public class N5Test {
       }
       else {
         assertTrue(Files.exists(output.resolve("data.n5")));
-        assertTrue(Files.exists(output.resolve("format.json")));
+        assertFalse(Files.exists(output.resolve("format.json")));
       }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
     }
