@@ -107,7 +107,6 @@ public class N5Test {
         assertTrue(Files.exists(output.resolve("data.n5")));
         assertTrue(Files.exists(output.resolve("format.json")));
       }
-      }
       assertTrue(Files.exists(output.resolve("METADATA.ome.xml")));
     }
     catch (RuntimeException rt) {

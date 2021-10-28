@@ -519,7 +519,8 @@ public class Converter implements Callable<Void> {
 
       // stop after the first reader if only one tile in the image
       if (reader.getOptimalTileWidth() == reader.getSizeX()
-        && reader.getOptimalTileHeight() == reader.getSizeY()) {
+        && reader.getOptimalTileHeight() == reader.getSizeY())
+      {
         break;
       }
     }
