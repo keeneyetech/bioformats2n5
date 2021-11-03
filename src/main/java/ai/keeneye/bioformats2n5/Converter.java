@@ -516,6 +516,7 @@ public class Converter implements Callable<Void> {
       readers.add(separator);
     }
 
+    Path metadataPath;
     // Finally, perform conversion on all series
     try {
       IFormatReader v = readers.take();
@@ -585,7 +586,7 @@ public class Converter implements Callable<Void> {
         String xml = getService().getOMEXML(meta);
 
         // write the original OME-XML to a file
-        Path metadataPath = outputPath;
+        metadataPath = outputPath;
         if (!n5.equals(fileType)) {
           metadataPath = getRootPath().resolve("OME");
         }
@@ -595,8 +596,20 @@ public class Converter implements Callable<Void> {
         Path omexmlFile = metadataPath.resolve(METADATA_FILE);
         Files.write(omexmlFile, xml.getBytes(Constants.ENCODING));
 
-        if (noPix) {
-          // write the file format string to json
+
+      }
+      catch (ServiceException se) {
+        LOGGER.error("Could not retrieve OME-XML", se);
+        return;
+      }
+
+      finally {
+        readers.put(v);
+      }
+
+      if (noPix) {
+      // now write file format string to jason
+        try {
           JsonFactory factory = new JsonFactory();
           // Create JsonGenerator
           String jpath = metadataPath + "/format.json";
@@ -609,13 +622,10 @@ public class Converter implements Callable<Void> {
           generator.writeEndObject(); // End with right brace i.e }
           generator.close();
         }
-      }
-      catch (ServiceException se) {
-        LOGGER.error("Could not retrieve OME-XML", se);
-        return;
-      }
-      finally {
-        readers.put(v);
+        catch (IOException ie) {
+          LOGGER.error("Could not create format.json", ie);
+          return;
+        }
       }
 
       if (!noHCS) {
