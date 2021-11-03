@@ -393,6 +393,8 @@ public class Converter implements Callable<Void> {
   private List<HCSIndex> hcsIndexes = new ArrayList<HCSIndex>();
 
   private String format = "";
+  private int optimalTileWidth = 512;
+  private int optimalTileHeight = 512;
 
   @Override
   public Void call() throws Exception {
@@ -619,6 +621,8 @@ public class Converter implements Callable<Void> {
           generator.writeStartObject(); // Start with left brace i.e. {
           // Add string field
           generator.writeStringField("format", format);
+          generator.writeNumberField("tileWidth", optimalTileWidth);
+          generator.writeNumberField("tileHeight", optimalTileHeight);
           generator.writeEndObject(); // End with right brace i.e }
           generator.close();
         }
@@ -1983,6 +1987,8 @@ public class Converter implements Callable<Void> {
     try {
       imageReader.setId(inputPath.toString());
       format = imageReader.getFormat();
+      optimalTileWidth = imageReader.getOptimalTileWidth();
+      optimalTileHeight = imageReader.getOptimalTileHeight();
       imageReader.getCoreMetadataList();
       return imageReader.getReader().getClass();
     }
