@@ -392,6 +392,8 @@ public class Converter implements Callable<Void> {
 
   private List<HCSIndex> hcsIndexes = new ArrayList<HCSIndex>();
 
+  private String format = "";
+
   @Override
   public Void call() throws Exception {
     if (printVersion) {
@@ -466,8 +468,6 @@ public class Converter implements Callable<Void> {
       maxWorkers = 1;
     }
 
-    String format = "";
-
     // Now with our found type instantiate our queue of readers for use
     // during conversion
     for (int i=0; i < maxWorkers; i++) {
@@ -514,15 +514,6 @@ public class Converter implements Callable<Void> {
         ((MiraxReader) reader).setTileCache(tileCache);
       }
       readers.add(separator);
-
-      format = reader.getFormat();
-
-      // stop after the first reader if only one tile in the image
-      if (reader.getOptimalTileWidth() == reader.getSizeX()
-        && reader.getOptimalTileHeight() == reader.getSizeY())
-      {
-        break;
-      }
     }
 
     // Finally, perform conversion on all series
@@ -1981,6 +1972,8 @@ public class Converter implements Callable<Void> {
     ImageReader imageReader = new ImageReader(readerClasses);
     try {
       imageReader.setId(inputPath.toString());
+      format = imageReader.getFormat();
+      imageReader.getCoreMetadataList();
       return imageReader.getReader().getClass();
     }
     finally {
