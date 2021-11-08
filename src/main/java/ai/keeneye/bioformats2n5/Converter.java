@@ -6,7 +6,6 @@
  * missing please request a copy by contacting info@glencoesoftware.com
  */
 package ai.keeneye.bioformats2n5;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.Buffer;
@@ -31,7 +30,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import loci.common.Constants;
 import loci.common.DataTools;
 import loci.common.image.IImageScaler;
@@ -391,6 +392,10 @@ public class Converter implements Callable<Void> {
 
   private List<HCSIndex> hcsIndexes = new ArrayList<HCSIndex>();
 
+  private String format = "";
+  private int optimalTileWidth = 512;
+  private int optimalTileHeight = 512;
+
   @Override
   public Void call() throws Exception {
     if (printVersion) {
@@ -459,6 +464,12 @@ public class Converter implements Callable<Void> {
         "--fill-value not yet supported for " + readerClass);
     }
 
+    // no need to instantiate lots of workers
+    // if only the metadata is being read
+    if (noPix) {
+      maxWorkers = 1;
+    }
+
     // Now with our found type instantiate our queue of readers for use
     // during conversion
     for (int i=0; i < maxWorkers; i++) {
@@ -507,9 +518,11 @@ public class Converter implements Callable<Void> {
       readers.add(separator);
     }
 
+    Path metadataPath;
     // Finally, perform conversion on all series
     try {
       IFormatReader v = readers.take();
+
       IMetadata meta = null;
       try {
         meta = (IMetadata) v.getMetadataStore();
@@ -575,7 +588,7 @@ public class Converter implements Callable<Void> {
         String xml = getService().getOMEXML(meta);
 
         // write the original OME-XML to a file
-        Path metadataPath = outputPath;
+        metadataPath = outputPath;
         if (!n5.equals(fileType)) {
           metadataPath = getRootPath().resolve("OME");
         }
@@ -584,13 +597,39 @@ public class Converter implements Callable<Void> {
         }
         Path omexmlFile = metadataPath.resolve(METADATA_FILE);
         Files.write(omexmlFile, xml.getBytes(Constants.ENCODING));
+
+
       }
       catch (ServiceException se) {
         LOGGER.error("Could not retrieve OME-XML", se);
         return;
       }
+
       finally {
         readers.put(v);
+      }
+
+      if (noPix) {
+      // now write file format string to jason
+        try {
+          JsonFactory factory = new JsonFactory();
+          // Create JsonGenerator
+          String jpath = metadataPath + "/format.json";
+          File f = new File(jpath);
+          JsonGenerator generator
+            = factory.createGenerator(f, JsonEncoding.UTF8);
+          generator.writeStartObject(); // Start with left brace i.e. {
+          // Add string field
+          generator.writeStringField("format", format);
+          generator.writeNumberField("tileWidth", optimalTileWidth);
+          generator.writeNumberField("tileHeight", optimalTileHeight);
+          generator.writeEndObject(); // End with right brace i.e }
+          generator.close();
+        }
+        catch (IOException ie) {
+          LOGGER.error("Could not create format.json", ie);
+          return;
+        }
       }
 
       if (!noHCS) {
@@ -1947,6 +1986,10 @@ public class Converter implements Callable<Void> {
     ImageReader imageReader = new ImageReader(readerClasses);
     try {
       imageReader.setId(inputPath.toString());
+      format = imageReader.getFormat();
+      optimalTileWidth = imageReader.getOptimalTileWidth();
+      optimalTileHeight = imageReader.getOptimalTileHeight();
+      imageReader.getCoreMetadataList();
       return imageReader.getReader().getClass();
     }
     finally {
