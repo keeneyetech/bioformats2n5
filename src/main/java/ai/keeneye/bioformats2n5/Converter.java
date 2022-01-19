@@ -1989,7 +1989,6 @@ public class Converter implements Callable<Void> {
       format = imageReader.getFormat();
       optimalTileWidth = imageReader.getOptimalTileWidth();
       optimalTileHeight = imageReader.getOptimalTileHeight();
-      imageReader.getCoreMetadataList();
       return imageReader.getReader().getClass();
     }
     finally {
