@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'ai.keeneye'
-version = '0.5.0'
+version = '0.6.0'
 
 mainClassName = 'ai.keeneye.bioformats2n5.Converter'
 sourceCompatibility = 1.8
