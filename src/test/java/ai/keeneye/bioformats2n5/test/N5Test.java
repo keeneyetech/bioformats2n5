@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2019 Glencoe Software, Inc. All rights reserved.
+ * <p>
+ * This software is distributed under the terms described by the LICENSE.txt
+ * file you can find at the root of the distribution bundle.  If the file is
+ * missing please request a copy by contacting info@glencoesoftware.com
+ */
 package ai.keeneye.bioformats2n5.test;
 
 import java.io.File;
@@ -495,12 +502,13 @@ public class N5Test {
     assertEquals(DataType.UINT16, da.getDataType());
     assertArrayEquals(new long[]{30, 150, 1, 1, 1}, da.getDimensions());
     assertArrayEquals(new int[]{25, 75, 1, 1, 1}, da.getBlockSize());
-    ShortBuffer tile = z.readBlock("/0/1", da, new long[]{1, 0, 0, 0, 0}).toByteBuffer().asShortBuffer();
+    ShortBuffer tile = z.readBlock("/0/1", da, new long[]{1, 0, 0, 0, 0})
+      .toByteBuffer().asShortBuffer();
     // Last row first pixel should be the 2x2 downsampled value;
     // test will break if the downsampling algorithm changes
     assertEquals(50, tile.get(75 * 4));
   }
-
+  
   /**
    * Test that original metadata is saved.
    */
@@ -509,6 +517,7 @@ public class N5Test {
     Map<String, String> originalMetadata = new HashMap<String, String>();
     originalMetadata.put("key1", "value1");
     originalMetadata.put("key2", "value2");
+
     input = fake(null, null, originalMetadata);
     assertTool();
     Path omexml = output.resolve("METADATA.ome.xml");
