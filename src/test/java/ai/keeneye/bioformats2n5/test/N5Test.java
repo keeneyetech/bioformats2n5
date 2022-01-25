@@ -508,7 +508,7 @@ public class N5Test {
     // test will break if the downsampling algorithm changes
     assertEquals(50, tile.get(75 * 4));
   }
-  
+
   /**
    * Test that original metadata is saved.
    */
@@ -517,7 +517,6 @@ public class N5Test {
     Map<String, String> originalMetadata = new HashMap<String, String>();
     originalMetadata.put("key1", "value1");
     originalMetadata.put("key2", "value2");
-
     input = fake(null, null, originalMetadata);
     assertTool();
     Path omexml = output.resolve("METADATA.ome.xml");
