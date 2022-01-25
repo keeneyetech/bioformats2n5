@@ -523,7 +523,6 @@ public class N5Test {
     Path omexml = output.resolve("METADATA.ome.xml");
     StringBuilder xml = new StringBuilder();
     Files.lines(omexml).forEach(v -> xml.append(v));
-
     OMEXMLService service =
       new ServiceFactory().getInstance(OMEXMLService.class);
     OMEXMLMetadata retrieve =
