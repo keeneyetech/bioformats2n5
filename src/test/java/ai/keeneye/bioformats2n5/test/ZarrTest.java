@@ -34,8 +34,8 @@ import loci.formats.FormatTools;
 import loci.formats.in.FakeReader;
 
 // imports for originalMetaData tests
-// import java.util.Hashtable;
-// import loci.formats.ome.OMEXMLMetadata;
+import java.util.Hashtable;
+import loci.formats.ome.OMEXMLMetadata;
 
 import loci.formats.services.OMEXMLService;
 import ome.xml.model.OME;
@@ -673,11 +673,9 @@ public class ZarrTest {
     assertEquals(50, tile[75 * 4]);
   }
 
-  //Restore this test if original metadata is required
-  /*
+  /**
    * Test that original metadata is saved.
    */
-/*
  @Test
  public void testOriginalMetadata() throws Exception {
    Map<String, String> originalMetadata = new HashMap<String, String>();
@@ -689,7 +687,6 @@ public class ZarrTest {
    Path omexml = output.resolve("OME").resolve("METADATA.ome.xml");
    StringBuilder xml = new StringBuilder();
    Files.lines(omexml).forEach(v -> xml.append(v));
-
    OMEXMLService service =
      new ServiceFactory().getInstance(OMEXMLService.class);
    OMEXMLMetadata retrieve =
@@ -700,7 +697,6 @@ public class ZarrTest {
      assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
    }
  }
-*/
 
   /**
    * Test that execution fails if the output directory already exists and the
