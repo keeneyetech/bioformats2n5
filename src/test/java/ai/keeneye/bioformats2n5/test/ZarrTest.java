@@ -673,9 +673,9 @@ public class ZarrTest {
     assertEquals(50, tile[75 * 4]);
   }
 
-    /**
-     * Test that original metadata is saved.
-     */
+  /**
+   * * Test that original metadata is saved.
+   * */
    @Test
    public void testOriginalMetadata() throws Exception {
      Map<String, String> originalMetadata = new HashMap<String, String>();
