@@ -30,10 +30,10 @@ import loci.formats.FormatTools;
 import loci.formats.in.FakeReader;
 
 // imports for originalMetadata tests
-// import java.util.Hashtable;
-// import loci.common.services.ServiceFactory;
-// import loci.formats.ome.OMEXMLMetadata;
-// import loci.formats.services.OMEXMLService;
+import java.util.Hashtable;
+import loci.common.services.ServiceFactory;
+import loci.formats.ome.OMEXMLMetadata;
+import loci.formats.services.OMEXMLService;
 
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -509,22 +509,19 @@ public class N5Test {
     assertEquals(50, tile.get(75 * 4));
   }
 
-  // restore this test if original metadata is required
-  /*
+  /**
    * Test that original metadata is saved.
    */
-  /* @Test
+  @Test
   public void testOriginalMetadata() throws Exception {
     Map<String, String> originalMetadata = new HashMap<String, String>();
     originalMetadata.put("key1", "value1");
     originalMetadata.put("key2", "value2");
-
     input = fake(null, null, originalMetadata);
     assertTool();
     Path omexml = output.resolve("METADATA.ome.xml");
     StringBuilder xml = new StringBuilder();
     Files.lines(omexml).forEach(v -> xml.append(v));
-
     OMEXMLService service =
       new ServiceFactory().getInstance(OMEXMLService.class);
     OMEXMLMetadata retrieve =
@@ -534,7 +531,7 @@ public class N5Test {
     for (String key : originalMetadata.keySet()) {
       assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
     }
-  } */
+  }
 
   /**
    * Test that execution fails if the output directory already exists and the
