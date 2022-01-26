@@ -673,30 +673,30 @@ public class ZarrTest {
     assertEquals(50, tile[75 * 4]);
   }
 
-  /**
-   * Test that original metadata is saved.
-   */
- @Test
- public void testOriginalMetadata() throws Exception {
-   Map<String, String> originalMetadata = new HashMap<String, String>();
-   originalMetadata.put("key1", "value1");
-   originalMetadata.put("key2", "value2");
+    /**
+     * Test that original metadata is saved.
+     */
+   @Test
+   public void testOriginalMetadata() throws Exception {
+     Map<String, String> originalMetadata = new HashMap<String, String>();
+     originalMetadata.put("key1", "value1");
+     originalMetadata.put("key2", "value2");
 
-   input = fake(null, null, originalMetadata);
-   assertTool();
-   Path omexml = output.resolve("OME").resolve("METADATA.ome.xml");
-   StringBuilder xml = new StringBuilder();
-   Files.lines(omexml).forEach(v -> xml.append(v));
-   OMEXMLService service =
-     new ServiceFactory().getInstance(OMEXMLService.class);
-   OMEXMLMetadata retrieve =
-     (OMEXMLMetadata) service.createOMEXMLMetadata(xml.toString());
-   Hashtable convertedMetadata = service.getOriginalMetadata(retrieve);
-   assertEquals(originalMetadata.size(), convertedMetadata.size());
-   for (String key : originalMetadata.keySet()) {
-     assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
+     input = fake(null, null, originalMetadata);
+     assertTool();
+     Path omexml = output.resolve("OME").resolve("METADATA.ome.xml");
+     StringBuilder xml = new StringBuilder();
+     Files.lines(omexml).forEach(v -> xml.append(v));
+     OMEXMLService service =
+       new ServiceFactory().getInstance(OMEXMLService.class);
+     OMEXMLMetadata retrieve =
+       (OMEXMLMetadata) service.createOMEXMLMetadata(xml.toString());
+     Hashtable convertedMetadata = service.getOriginalMetadata(retrieve);
+     assertEquals(originalMetadata.size(), convertedMetadata.size());
+     for (String key : originalMetadata.keySet()) {
+       assertEquals(originalMetadata.get(key), convertedMetadata.get(key));
+     }
    }
- }
 
   /**
    * Test that execution fails if the output directory already exists and the
